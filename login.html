@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Café</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #d9a7c7, #fffcdc);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fullscreen {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 2.5rem;
+      color: #333;
+    }
+
+    input, select {
+      margin: 10px 0;
+      padding: 10px;
+      width: 250px;
+      border-radius: 6px;
+      border: 1px solid #aaa;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #555;
+    }
+
+    .link {
+      margin-top: 15px;
+      color: blue;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .error { color: red; margin-top: 10px; }
+    .success { color: green; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- SIGNUP FORM -->
+  <div id="signupForm" class="fullscreen">
+    <h1>Welcome to Smart Café ☕</h1>
+    <h2>Create Account</h2>
+    <input id="signup-username" placeholder="Pick a username" />
+    <input id="signup-password" placeholder="Choose a password" type="password" />
+    <select id="signup-role">
+      <option value="student">Student</option>
+      <option value="staff">Staff</option>
+    </select>
+    <button id="signupBtn">Sign Up</button>
+    <div id="signup-error"></div>
+    <div class="link" id="showLogin">Already have an account? Login</div>
+  </div>
+
+  <!-- LOGIN FORM -->
+  <div id="loginForm" class="fullscreen" style="display:none">
+    <h1>Welcome to Smart Café ☕</h1>
+    <h2>Login</h2>
+    <input id="login-username" placeholder="Enter username" />
+    <input id="login-password" placeholder="Enter password" type="password" />
+    <button id="loginBtn">Login</button>
+    <div id="login-error"></div>
+    <div class="link" id="showSignup">Don’t have an account? Sign up</div>
+  </div>
+
+  <script>
+    // store and retrieve users in localStorage
+    function getUsers(){
+      return JSON.parse(localStorage.getItem("users") || "[]");
+    }
+    function addUser(user){
+      const users = getUsers();
+      users.push(user);
+      localStorage.setItem("users", JSON.stringify(users));
+    }
+    function setUser(user){
+      localStorage.setItem("currentUser", JSON.stringify(user));
+    }
+
+    function setMsg(id, text, err=false){
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = err ? "error" : "success";
+    }
+
+    // signup
+    document.getElementById("signupBtn").addEventListener("click", () => {
+      const u = document.getElementById("signup-username").value.trim();
+      const p = document.getElementById("signup-password").value.trim();
+      const r = document.getElementById("signup-role").value;
+
+      if(!u || !p){ setMsg("signup-error","Username and password required",true); return; }
+      if(p.length < 4){ setMsg("signup-error","Password must be at least 4 characters",true); return; }
+      if(getUsers().some(x => x.username.toLowerCase() === u.toLowerCase())){
+        setMsg("signup-error","Username already exists",true); return;
+      }
+
+      const newUser = { username:u, password:p, role:r };
+      addUser(newUser);
+      setUser(newUser);
+
+      // redirect based on role
+      if(r === "student"){
+        window.location.href = "menu.html";
+      } else {
+        window.location.href = "order.html";
+      }
+    });
+
+    // login
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const u = document.getElementById("login-username").value.trim();
+      const p = document.getElementById("login-password").value.trim();
+
+      const found = getUsers().find(
+        x => x.username.toLowerCase() === u.toLowerCase() && x.password === p
+      );
+
+      if(found){
+        setUser(found);
+        document.getElementById("login-error").textContent = "Login successful!";
+        document.getElementById("login-error").className = "success";
+        
+        // redirect based on role
+        if(found.role === "student"){
+          window.location.href = "menu.html";
+        } else {
+          window.location.href = "order.html";
+        }
+
+      } else {
+        document.getElementById("login-error").textContent = "Invalid username or password.";
+        document.getElementById("login-error").className = "error";
+      }
+    });
+
+    // toggle
+    document.getElementById("showLogin").addEventListener("click", () => {
+      document.getElementById("signupForm").style.display = "none";
+      document.getElementById("loginForm").style.display = "flex";
+    });
+
+    document.getElementById("showSignup").addEventListener("click", () => {
+      document.getElementById("loginForm").style.display = "none";
+      document.getElementById("signupForm").style.display = "flex";
+    });
+  </script>
+</body>
+</html>
+

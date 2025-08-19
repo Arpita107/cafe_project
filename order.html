@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Café — Staff Orders</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+<style>
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f5f7;
+    padding: 30px;
+    color: #333;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 25px;
+    color: #2c3e50;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    font-size: 0.95rem;
+  }
+
+  th, td {
+    padding: 14px 16px;
+    text-align: center;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  thead {
+    background: #a8dadc; /* pastel teal */
+    color: #1d3557;
+    font-weight: 600;
+  }
+
+  tbody tr:nth-child(1) { background: #fce7f3; } /* pastel pink */
+  tbody tr:nth-child(2) { background: #eafaf1; } /* pastel green */
+  tbody tr:nth-child(3) { background: #fff8e7; } /* pastel yellow */
+  tbody tr:nth-child(4) { background: #e6f0fa; } /* pastel blue */
+  tbody tr:nth-child(5) { background: #fdeeed; } /* pastel coral */
+
+  tbody tr:hover {
+    background: #d1e7ff; /* subtle hover highlight */
+    cursor: pointer;
+  }
+
+  .status {
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-block;
+  }
+
+  .s-prep { background: #fff3cd; color: #4f37ee; }
+  .s-ready { background: #d4edda; color: #37a04f; }
+  .s-coll  { background: #e2e3e5; color: #205c91; }
+  .s-cancel{ background: #f8d7da; color: #c84859; }
+
+  .btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  .btn-success { background: #28a745; color: #fff; }
+  .btn-warning { background: #ffc107; color: #212529; }
+  .btn-danger  { background: #dc3545; color: #fff; }
+
+  .btn:hover { transform: scale(1.05); }
+</style>
+
+</head>
+<body>
+  <header>
+    <h1>Today's order</h1>
+    <div class="kpis">
+      <span>Active Orders: <strong id="kpiActive">0</strong></span>
+      <span>Ready Orders: <strong id="kpiReady">0</strong></span>
+    </div>
+  </header>
+
+  <main>
+    <table id="adminTable">
+      <thead>
+        <tr>
+          <th>Token</th>
+          <th>Items</th>
+          <th>Total</th>
+          <th>Time</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="6" id="adminEmpty">No Orders Yet</td></tr>
+      </tbody>
+    </table>
+  </main>
+
+  <footer>
+    <button id="clearOrders" class="btn danger">Clear Collected</button>
+  </footer>
+
+<script>
+  // Dummy data (replace with getOrders/setOrders if you have storage system)
+  let orders = [
+    {id:1, token:101, items:["Latte","Sandwich"], total:180, status:"Preparing", at: Date.now()},
+    {id:2, token:102, items:["Espresso"], total:90, status:"Preparing", at: Date.now()},
+  ];
+
+  function formatTime(ms){
+    const d = new Date(ms);
+    return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  }
+
+  function renderAdmin(){
+    const tbody = document.querySelector("#adminTable tbody");
+    tbody.innerHTML = "";
+    if(!orders.length){
+      tbody.innerHTML = `<tr><td colspan="6" id="adminEmpty">No Orders Yet</td></tr>`;
+      return;
+    }
+
+    let active=0, ready=0;
+    orders.forEach((o,idx)=>{
+      if(o.status!=="Collected" && o.status!=="Canceled") active++;
+      if(o.status==="Ready") ready++;
+
+      const cls = o.status==="Ready"?"s-ready":
+                  o.status==="Collected"?"s-coll":
+                  o.status==="Canceled"?"s-cancel":"s-prep";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>#${String(o.token).padStart(3,"0")}</td>
+        <td>${o.items.join(", ")}</td>
+        <td>₹${o.total}</td>
+        <td>${formatTime(o.at)}</td>
+        <td><span class="status ${cls}">${o.status}</span></td>
+        <td>
+          <button class="btn warning" data-act="prep" data-i="${idx}">Preparing</button>
+          <button class="btn success" data-act="ready" data-i="${idx}">Ready</button>
+          <button class="btn ghost" data-act="collected" data-i="${idx}">Collected</button>
+          <button class="btn danger" data-act="cancel" data-i="${idx}">Cancel</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+
+    document.querySelector("#kpiActive").textContent = active;
+    document.querySelector("#kpiReady").textContent = ready;
+  }
+
+  document.querySelector("#adminTable").addEventListener("click", (e)=>{
+    const btn = e.target.closest("[data-act]");
+    if(!btn) return;
+    const i = +btn.dataset.i;
+    const act = btn.dataset.act;
+
+    if(!orders[i]) return;
+    orders[i].status = (act==="prep")?"Preparing":
+                      (act==="ready")?"Ready":
+                      (act==="collected")?"Collected":"Canceled";
+    renderAdmin();
+
+    // Notify user when order is ready
+    if(act==="ready"){
+      alert(`🔔 Order #${orders[i].token} is Ready for pickup!`);
+    }
+  });
+
+  document.querySelector("#clearOrders").addEventListener("click", ()=>{
+    orders = orders.filter(o=>o.status!=="Collected" && o.status!=="Canceled");
+    renderAdmin();
+  });
+
+  document.addEventListener("DOMContentLoaded", renderAdmin);
+
+</script>
+</body>
+</html>
